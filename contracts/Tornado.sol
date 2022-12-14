@@ -66,6 +66,7 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
   /**
     @dev ...
     @param _commitment ...
+    TODO: elements are uint256 because in JS hash has reverse byte order than bytes32
   */
   function revoke(bytes32 _commitment, bytes32 _lastCommitment, uint32 _index, uint256[] calldata _commitmentElements, uint256[] calldata _newSubtrees) external payable nonReentrant {
     require(commitments[_commitment], "The commitment has not been submitted");
@@ -137,7 +138,10 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
     // verify new root to ensure no other elements were modified
     require(postRevokeRootVerification == postRevokeRoot, "merkle tree improperly modified");
 
-    // uint32 insertedIndex = _insert(_commitment);
+    // finally overwrite older roots containing revoked commitment
+    for (uint32 i = 0; i < ROOT_HISTORY_SIZE; i++)
+      roots[i] = postRevokeRoot;
+
     // should commitment be erased? I don't see a reason to...
     // commitments[_commitment] = false;
     
