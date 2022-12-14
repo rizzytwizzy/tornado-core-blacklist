@@ -28,6 +28,7 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
   mapping(bytes32 => bool) public commitments;
 
   event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
+  event Revoked(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
   event Withdrawal(address to, bytes32 nullifierHash, address indexed relayer, uint256 fee);
 
   /**
@@ -60,6 +61,90 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
     _processDeposit();
 
     emit Deposit(_commitment, insertedIndex, block.timestamp);
+  }
+
+  /**
+    @dev ...
+    @param _commitment ...
+  */
+  function revoke(bytes32 _commitment, bytes32 _lastCommitment, uint32 _index, uint256[] calldata _commitmentElements, uint256[] calldata _newSubtrees) external payable nonReentrant {
+    require(commitments[_commitment], "The commitment has not been submitted");
+
+    /*
+      - calculate root from commitment proof and compare to lastRoot()
+      - revoke commitment by setting leaf to 0
+      - calculate new root
+      - calculate expected root from lastNode proof
+      - verify that lastNode proof matches the updated merkle root
+      - if true, update filledSubtrees with lastProof
+     */
+
+    // calcuate root from commitment proof
+    bytes32 preRevokeRoot = _commitment;
+    bytes32 left;
+    bytes32 right;
+    uint32 currentIndex = _index;
+
+    for (uint32 i = 0; i < levels; i++) {
+      if (currentIndex % 2 == 0) {
+        left = preRevokeRoot;
+        right = bytes32(_commitmentElements[i]);
+      } else {
+        left = bytes32(_commitmentElements[i]);
+        right = preRevokeRoot;
+      }
+      preRevokeRoot = hashLeftRight(hasher, left, right);
+      currentIndex /= 2;
+    }
+
+    // verify commitment proof was valid
+    require(preRevokeRoot == getLastRoot(), "invalid commitment proof");
+
+    // calculate new root
+    bytes32 postRevokeRoot = bytes32(0x0);
+    currentIndex = _index;
+
+    for (uint32 i = 0; i < levels; i++) {
+      if (currentIndex % 2 == 0) {
+        left = postRevokeRoot;
+        right = bytes32(_commitmentElements[i]);
+      } else {
+        left = bytes32(_commitmentElements[i]);
+        right = postRevokeRoot;
+      }
+      postRevokeRoot = hashLeftRight(hasher, left, right);
+      currentIndex /= 2;
+    }
+
+    // calculate new root to ensure no other elements were modified
+    bytes32 postRevokeRootVerification = _lastCommitment;
+    currentIndex = nextIndex - 1;
+
+    for (uint32 i = 0; i < levels; i++) {
+      // update filledSubtrees with new proof
+      filledSubtrees[i] = bytes32(_newSubtrees[i]);
+      if (currentIndex % 2 == 0) {
+        left = postRevokeRootVerification;
+        right = bytes32(_newSubtrees[i]);
+      } else {
+        left = bytes32(_newSubtrees[i]);
+        right = postRevokeRootVerification;
+      }
+      postRevokeRootVerification = hashLeftRight(hasher, left, right);
+      currentIndex /= 2;
+    }
+
+    // verify new root to ensure no other elements were modified
+    require(postRevokeRootVerification == postRevokeRoot, "merkle tree improperly modified");
+
+    // uint32 insertedIndex = _insert(_commitment);
+    // should commitment be erased? I don't see a reason to...
+    // commitments[_commitment] = false;
+    
+    // should withdraw?
+    // _processWithdraw(msg.sender, address(0), 0, 0);
+
+    emit Revoked(_commitment, _index, block.timestamp);
   }
 
   /** @dev this function is defined in a child contract */
