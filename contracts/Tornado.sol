@@ -21,6 +21,7 @@ interface IVerifier {
 
 abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
   IVerifier public immutable verifier;
+  address public immutable revokeGovernance;
   uint256 public denomination;
 
   mapping(bytes32 => bool) public nullifierHashes;
@@ -40,12 +41,14 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
   */
   constructor(
     IVerifier _verifier,
+    address _revokeGovernance,
     IHasher _hasher,
     uint256 _denomination,
     uint32 _merkleTreeHeight
   ) MerkleTreeWithHistory(_merkleTreeHeight, _hasher) {
     require(_denomination > 0, "denomination should be greater than 0");
     verifier = _verifier;
+    revokeGovernance = _revokeGovernance;
     denomination = _denomination;
   }
 
@@ -67,8 +70,11 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
     @dev ...
     @param _commitment ...
     TODO: elements are uint256 because in JS hash has reverse byte order than bytes32
+    TODO: restrict who can call revoke()
+    TODO: must add withdraw delay to ensure commitment wasn't already withdrawn (otherwise revoke would still succeeed but you wouldn't be able to tell)
   */
   function revoke(bytes32 _commitment, bytes32 _lastCommitment, uint32 _index, uint256[] calldata _commitmentElements, uint256[] calldata _newSubtrees) external payable nonReentrant {
+    require(msg.sender == revokeGovernance, "must be revoker!");
     require(commitments[_commitment], "The commitment has not been submitted");
 
     /*

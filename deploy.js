@@ -14,7 +14,7 @@ const contract = new web3.eth.Contract(contractData.abi)
 const bytes = contract
   .deploy({
     data: contractData.bytecode,
-    arguments: [verifierAddress, hasherAddress, poolSize, 20],
+    arguments: [verifierAddress, process.env.REVOKE_GOV_ADDRESS, hasherAddress, poolSize, 20],
   })
   .encodeABI()
 

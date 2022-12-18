@@ -22,11 +22,12 @@ contract cTornado is ERC20Tornado {
   constructor(
     IERC20 _comp,
     IVerifier _verifier,
+    address _revokeGovernance,
     IHasher _hasher,
     uint256 _denomination,
     uint32 _merkleTreeHeight,
     IERC20 _token
-  ) ERC20Tornado(_verifier, _hasher, _denomination, _merkleTreeHeight, _token) {
+  ) ERC20Tornado(_verifier, _revokeGovernance, _hasher, _denomination, _merkleTreeHeight, _token) {
     require(address(_comp) != address(0), "Invalid COMP token address");
     comp = _comp;
   }

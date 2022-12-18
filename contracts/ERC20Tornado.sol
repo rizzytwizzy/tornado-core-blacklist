@@ -22,11 +22,12 @@ contract ERC20Tornado is Tornado {
 
   constructor(
     IVerifier _verifier,
+    address _revokeGovernance,
     IHasher _hasher,
     uint256 _denomination,
     uint32 _merkleTreeHeight,
     IERC20 _token
-  ) Tornado(_verifier, _hasher, _denomination, _merkleTreeHeight) {
+  ) Tornado(_verifier, _revokeGovernance, _hasher, _denomination, _merkleTreeHeight) {
     token = _token;
   }
 

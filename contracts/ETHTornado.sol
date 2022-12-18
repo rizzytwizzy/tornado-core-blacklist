@@ -17,10 +17,11 @@ import "./Tornado.sol";
 contract ETHTornado is Tornado {
   constructor(
     IVerifier _verifier,
+    address _revokeGovernance,
     IHasher _hasher,
     uint256 _denomination,
     uint32 _merkleTreeHeight
-  ) Tornado(_verifier, _hasher, _denomination, _merkleTreeHeight) {}
+  ) Tornado(_verifier, _revokeGovernance, _hasher, _denomination, _merkleTreeHeight) {}
 
   function _processDeposit() internal override {
     require(msg.value == denomination, "Please send `mixDenomination` ETH along with transaction");

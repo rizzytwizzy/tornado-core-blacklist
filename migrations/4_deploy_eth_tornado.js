@@ -12,6 +12,7 @@ module.exports = function (deployer) {
     const tornado = await deployer.deploy(
       ETHTornado,
       verifier.address,
+      process.env.REVOKE_GOV_ADDRESS,
       hasher.address,
       ETH_AMOUNT,
       MERKLE_TREE_HEIGHT,
