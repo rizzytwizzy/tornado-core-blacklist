@@ -74,7 +74,7 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
     TODO: must add withdraw delay to ensure commitment wasn't already withdrawn (otherwise revoke would still succeeed but you wouldn't be able to tell)
   */
   function revoke(bytes32 _commitment, bytes32 _lastCommitment, uint32 _index, uint256[] calldata _commitmentElements, uint256[] calldata _newSubtrees) external payable nonReentrant {
-    require(msg.sender == revokeGovernance, "must be revoker!");
+    // require(msg.sender == revokeGovernance, "must be revoker!");
     require(commitments[_commitment], "The commitment has not been submitted");
 
     /*
