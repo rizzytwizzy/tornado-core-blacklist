@@ -68,13 +68,16 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
 
   /**
     @dev ...
-    @param _commitment ...
+    @param _commitment the note commitment to be revoked
+    @param _index of the commitment to be revoked. essentially the commitment path in the merkle tree
+    @param _commitmentProof proof of _commitment
+    @param _lastCommitment the last commitment in the tree. it is needed because of some optimization
+    @param _newSubtrees new filledSubtrees, basically proof of the _lastCommit *after* _commitment has been revoked
     TODO: elements are uint256 because in JS hash has reverse byte order than bytes32
-    TODO: restrict who can call revoke()
     TODO: must add withdraw delay to ensure commitment wasn't already withdrawn (otherwise revoke would still succeeed but you wouldn't be able to tell)
   */
-  function revoke(bytes32 _commitment, bytes32 _lastCommitment, uint32 _index, uint256[] calldata _commitmentElements, uint256[] calldata _newSubtrees) external payable nonReentrant {
-    // require(msg.sender == revokeGovernance, "must be revoker!");
+  function revoke(bytes32 _commitment, uint32 _index, uint256[] calldata _commitmentProof, bytes32 _lastCommitment, uint256[] calldata _newSubtrees) external /*nonReentrant*/ {
+    require(msg.sender == revokeGovernance, "must be revoker!");
     require(commitments[_commitment], "The commitment has not been submitted");
 
     /*
@@ -95,9 +98,9 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
     for (uint32 i = 0; i < levels; i++) {
       if (currentIndex % 2 == 0) {
         left = preRevokeRoot;
-        right = bytes32(_commitmentElements[i]);
+        right = bytes32(_commitmentProof[i]);
       } else {
-        left = bytes32(_commitmentElements[i]);
+        left = bytes32(_commitmentProof[i]);
         right = preRevokeRoot;
       }
       preRevokeRoot = hashLeftRight(hasher, left, right);
@@ -114,9 +117,9 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
     for (uint32 i = 0; i < levels; i++) {
       if (currentIndex % 2 == 0) {
         left = postRevokeRoot;
-        right = bytes32(_commitmentElements[i]);
+        right = bytes32(_commitmentProof[i]);
       } else {
-        left = bytes32(_commitmentElements[i]);
+        left = bytes32(_commitmentProof[i]);
         right = postRevokeRoot;
       }
       postRevokeRoot = hashLeftRight(hasher, left, right);

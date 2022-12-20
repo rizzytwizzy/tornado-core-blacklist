@@ -156,7 +156,7 @@ contract('ETHTornado', (accounts) => {
       const new_pathElements = tree.path(_lastCommitmentIdx).pathElements.map(toFixedHex)
       // console.log(new_pathElements)
 
-      const _resp = await tornado.revoke(_commitment, _lastCommitment, _commitmentIdx, commitment_pathElements, new_pathElements)
+      const _resp = await tornado.revoke(_commitment, _commitmentIdx, commitment_pathElements, _lastCommitment, new_pathElements)
       console.log(_resp.logs)
 
       /* /patch */
