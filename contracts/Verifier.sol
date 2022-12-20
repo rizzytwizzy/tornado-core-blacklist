@@ -1,1 +1,1 @@
-../build/circuits/Verifier.json
+../build/circuits/Verifier.sol
