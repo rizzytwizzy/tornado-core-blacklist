@@ -27,6 +27,7 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
   mapping(bytes32 => bool) public nullifierHashes;
   // we store all commitments just to prevent accidental deposits with the same commitment
   mapping(bytes32 => bool) public commitments;
+  mapping(address => bytes32) public userMerkleRoots;
 
   event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
   event Revoked(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
@@ -179,6 +180,8 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
     address payable _relayer,
     uint256 _fee,
     uint256 _refund
+    bytes32[] calldata _merkleProofs,
+    address[] calldata _listOwners
   ) external payable nonReentrant {
     require(_fee <= denomination, "Fee exceeds transfer value");
     require(!nullifierHashes[_nullifierHash], "The note has been already spent");
@@ -190,6 +193,18 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
       ),
       "Invalid withdraw proof"
     );
+
+    // Verify against user-provided Merkle trees
+    for (uint256 i = 0; i < _listOwners.length; i++) {
+        require(
+            !verifyMerkleProof(
+                keccak256(abi.encodePacked(_recipient)),
+                _merkleProofs[i],
+                userMerkleRoots[_listOwners[i]]
+            ),
+            "Address is in a blacklisted Merkle tree"
+        );
+    }
 
     nullifierHashes[_nullifierHash] = true;
     _processWithdraw(_recipient, _relayer, _fee, _refund);
@@ -208,6 +223,29 @@ abstract contract Tornado is MerkleTreeWithHistory, ReentrancyGuard {
   function isSpent(bytes32 _nullifierHash) public view returns (bool) {
     return nullifierHashes[_nullifierHash];
   }
+
+  // Function to update merkle roots
+  function updateUserMerkleRoot(bytes32 _newMerkleRoot) public {
+    userMerkleRoots[msg.sender] = _newMerkleRoot;
+  }
+
+  // Function to verify Merkle proof
+  function verifyMerkleProof(bytes32 _leaf, bytes32[] memory _proof, bytes32 _root) public pure returns (bool) {
+    bytes32 computedHash = _leaf;
+    for (uint256 i = 0; i < _proof.length; i++) {
+        bytes32 proofElement = _proof[i];
+        if (computedHash <= proofElement) {
+            // Hash(current computed hash + current element of the proof)
+            computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+        } else {
+            // Hash(current element of the proof + current computed hash)
+            computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+        }
+    }
+    // Check if the computed hash (root) is equal to the provided root
+    return computedHash == _root;
+  }
+
 
   /** @dev whether an array of notes is already spent */
   function isSpentArray(bytes32[] calldata _nullifierHashes) external view returns (bool[] memory spent) {
